@@ -8,12 +8,13 @@ struct GameTablePrivate {
 
 static void setCell(GameTable *self, const Cell *cell)
 {
-   self->p->table[cell->x][cell->y] = cell->color;   
+   self->p->table[cell->y][cell->x] = cell->color;   
 }
 
-static Color getCell(const struct GameTable *self, int x, int y)
+static Cell getCell(const struct GameTable *self, int x, int y)
 {
-   return self->p->table[y][x];
+   Cell cell = createCell(self->p->table[y][x], x, y);
+   return cell;
 }
 
 static int getSizeX(const struct GameTable *self)
@@ -34,11 +35,11 @@ GameTable *createGameTable(int sizeX, int sizeY)
    gameTable->p->sizeTableX = sizeX;
    gameTable->p->sizeTableY = sizeY;
    
-   gameTable->p->table = (Color **) malloc(sizeX * sizeof(Color *));
-   for(int i=0; i<sizeX; i++) {
-      gameTable->p->table[i] = malloc(sizeY * sizeof(Color));
-      for(int j=0; j<sizeY; j++) {
-         gameTable->p->table[i][j] = NOCOLOR;
+   gameTable->p->table = (Color **) malloc(sizeY * sizeof(Color *));
+   for(int y=0; y<sizeY; y++) {
+      gameTable->p->table[y] = malloc(sizeY * sizeof(Color));
+      for(int x=0; x<sizeX; x++) {
+         gameTable->p->table[y][x] = NOCOLOR;
       }
    } 
    
@@ -52,8 +53,8 @@ GameTable *createGameTable(int sizeX, int sizeY)
 
 void destroyGameTable(GameTable *self)
 {
-   for(int i=0; i<self->p->sizeTableX; i++) {
-      free(self->p->table[i]);
+   for(int y=0; y<self->p->sizeTableY; y++) {
+      free(self->p->table[y]);
    }
    free(self->p->table);
    free(self->p);

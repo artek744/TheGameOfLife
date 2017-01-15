@@ -17,8 +17,7 @@ typedef struct Cell
    Color color;
 } Cell;
 
-Cell *createCell(Color color, int x, int y);
-void destroyCell(Cell *cell);
+Cell createCell(Color color, int x, int y);
 
 
 #endif

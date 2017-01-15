@@ -3,17 +3,13 @@
 #include "../headers/cell.h"
 
 
-Cell *createCell(Color color, int x, int y)
+Cell createCell(Color color, int x, int y)
 {
-   Cell *cell = malloc(sizeof(Cell));
-   cell->color = color;
-   cell->x = x;
-   cell->y = y;
+   Cell cell;
+   cell.color = color;
+   cell.x = x;
+   cell.y = y;
 
    return cell;
 }
 
-void destroyCell(Cell *cell)
-{
-   free(cell);
-}

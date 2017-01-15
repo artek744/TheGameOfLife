@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "../headers/gametable.h"
 
+#define DEFAULT_SLEEP_TIME_USEC 500000 
 #define MAX_PLAYERS 4
 
 typedef struct GamePrivate GamePrivate;

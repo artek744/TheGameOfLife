@@ -11,7 +11,7 @@ typedef struct GameTablePrivate GameTablePrivate;
 typedef struct GameTable
 {
    void (*setCell)(struct GameTable *self, const Cell *cell); 
-   Color (*getCell)(const struct GameTable *self, int x, int y);
+   Cell (*getCell)(const struct GameTable *self, int x, int y);
    int (*getSizeX)(const struct GameTable *self);
    int (*getSizeY)(const struct GameTable *self);
    GameTablePrivate *p;
