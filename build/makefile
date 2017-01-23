@@ -1,5 +1,5 @@
-CFLAGS = -Wall -g -I../headers
-LDFLAGS = -lX11
+CFLAGS = -Wall -g -I../headers -fopenmp
+LDFLAGS = -lX11 -lgomp -pthread -std=c99
 
 
 SOURCES = $(wildcard ../sources/*.c)

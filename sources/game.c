@@ -1,17 +1,5 @@
 #include "../headers/game.h"
 
-#define COLOR_RED  "#FF0000"
-#define COLOR_GREEN  "#00FF00"
-#define COLOR_YELLOW  "#FFFF00"
-#define COLOR_BLUE  "#428AFF"
-#define COLOR_BLACK "#000000"
-#define COLOR_DARK_GRAY "#696969"
-#define COLOR_DIM_GRAY "#1e1e1e"
-#define COLOR_LIGHT_GRAY "#D3D3D3"
-
-#define HEIGHT_CELL 10
-#define WIDTH_CELL 10
-
 typedef struct ColorPallete
 {
     XColor red;
@@ -183,6 +171,7 @@ static void setCellsInTable(GameTable *mainTable, GameTable *tmpTable, Color pla
 
 static int startGame(Game *self)
 {
+   displayResult(self, self->p->mainTable);
    while(1) {
        XNextEvent(self->p->display, &self->p->xev);
 
@@ -204,9 +193,17 @@ static int startGame(Game *self)
       displayResult(self, self->p->mainTable);
       usleep(DEFAULT_SLEEP_TIME_USEC);
       
-      for(int i=0; i<self->p->playerCount; i++) {
-         setCellsInTable(self->p->mainTable, self->p->tmpTable, self->p->players[i]);    
+
+      GameTable *mainTable = self->p->mainTable;
+      int i;
+      omp_set_num_threads(4);
+    #pragma omp parallel for shared(mainTable) private(i)
+      for(i=0; i<self->p->playerCount; i++) {
+//         setCellsInTable(self->p->mainTable, self->p->tmpTable, self->p->players[i]);
+          setCellsInTable(mainTable, self->p->tmpTable, self->p->players[i]);
       }  
+
+
       swapTables(self->p->mainTable, self->p->tmpTable);
 
       while(XPending(self->p->display)) {
@@ -214,18 +211,6 @@ static int startGame(Game *self)
           if(self->p->xev.type == KeyPress) {
               XCloseDisplay(self->p->display);
               return 0;
-          }
-
-          if(self->p->xev.type == ButtonPress) {
-              if(self->p->xev.xbutton.button == 1) {
-
-              }
-          }
-
-          if(self->p->xev.type == ButtonRelease) {
-              if(self->p->xev.xbutton.button == 1) {
-
-              }
           }
       }
    }
@@ -268,8 +253,6 @@ static int setInitialCell(Game *self, const Cell *cell)
    self->p->mainTable->setCell(self->p->mainTable, cell);
    return 0;
 }
-
-
 
 static void initGraphics(Game *self)
 {

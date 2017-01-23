@@ -33,7 +33,6 @@ void setupGameTable(Game *game)
    cell = createCell(YELLOW, 101, 18);
    game->setInitialCell(game, &cell);
 
-
    cell = createCell(GREEN, 100, 42);
    game->setInitialCell(game, &cell);
    cell = createCell(GREEN, 101, 42);
@@ -49,7 +48,6 @@ void setupGameTable(Game *game)
    cell = createCell(GREEN, 101, 45);
    game->setInitialCell(game, &cell);
 
-
    cell = createCell(BLUE, 15, 38);
    game->setInitialCell(game, &cell);
    cell = createCell(BLUE, 16, 38);
@@ -64,8 +62,6 @@ void setupGameTable(Game *game)
    game->setInitialCell(game, &cell);
    cell = createCell(BLUE, 15, 41);
    game->setInitialCell(game, &cell);
-
-
 }
 
 int main(int argc, char **argv) 
