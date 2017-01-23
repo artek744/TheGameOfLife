@@ -1,5 +1,5 @@
 CFLAGS = -Wall -g -I../headers
-LDFLAGS =
+LDFLAGS = -lX11
 
 
 SOURCES = $(wildcard ../sources/*.c)

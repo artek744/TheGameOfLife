@@ -1,10 +1,29 @@
 #include "../headers/game.h"
 
-#define COLOR_RED  "\x1B[31m"
-#define COLOR_GREEN  "\x1B[32m"
-#define COLOR_YELLOW  "\x1B[33m"
-#define COLOR_BLUE  "\x1B[34m"
-#define COLOR_WHITE  "\x1B[37m"
+#define COLOR_RED  "#FF0000"
+#define COLOR_GREEN  "#00FF00"
+#define COLOR_YELLOW  "#FFFF00"
+#define COLOR_BLUE  "#428AFF"
+#define COLOR_BLACK "#000000"
+#define COLOR_DARK_GRAY "#696969"
+#define COLOR_DIM_GRAY "#1e1e1e"
+#define COLOR_LIGHT_GRAY "#D3D3D3"
+
+#define HEIGHT_CELL 10
+#define WIDTH_CELL 10
+
+typedef struct ColorPallete
+{
+    XColor red;
+    XColor green;
+    XColor black;
+    XColor white;
+    XColor yellow;
+    XColor blue;
+    XColor lightGray;
+    XColor darkGray;
+    XColor dimGray;
+} ColorPallete;
 
 struct GamePrivate
 {
@@ -12,25 +31,92 @@ struct GamePrivate
    GameTable *tmpTable;
    int playerCount;
    Color *players;
+   Display *display;
+   int screen;
+   Window mainWindow, gameArea;
+   XEvent xev;
+   ColorPallete color;
 };
 
-static void printCell(Color color)
+static void initColorPallete(Display *display, int screen, ColorPallete *color)
 {
-   switch(color) {
-      case RED: 
-         printf("%so ", COLOR_RED);
+    Colormap colormap;
+    colormap = DefaultColormap(display, screen);
+
+    XParseColor(display, colormap, COLOR_GREEN, &color->green);
+    XAllocColor(display, colormap, &color->green);
+
+    XParseColor(display, colormap, COLOR_RED, &color->red);
+    XAllocColor(display, colormap, &color->red);
+
+    XParseColor(display, colormap, COLOR_BLUE, &color->blue);
+    XAllocColor(display, colormap, &color->blue);
+
+    XParseColor(display, colormap, COLOR_BLACK, &color->black);
+    XAllocColor(display, colormap, &color->black);
+
+    XParseColor(display, colormap, COLOR_YELLOW, &color->yellow);
+    XAllocColor(display, colormap, &color->yellow);
+
+    XParseColor(display, colormap, COLOR_LIGHT_GRAY, &color->lightGray);
+    XAllocColor(display, colormap, &color->lightGray);
+
+    XParseColor(display, colormap, COLOR_DARK_GRAY, &color->darkGray);
+    XAllocColor(display, colormap, &color->darkGray);
+
+    XParseColor(display, colormap, COLOR_DIM_GRAY, &color->dimGray);
+    XAllocColor(display, colormap, &color->dimGray);
+}
+
+static void setFullScreen(Display *display, Window window, XEvent xev)
+{
+    Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom fullscreen = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
+    memset(&xev, 0, sizeof(xev));
+    xev.type = ClientMessage;
+    xev.xclient.window = window;
+    xev.xclient.message_type = wm_state;
+    xev.xclient.format = 32;
+    xev.xclient.data.l[0] = 1;
+    xev.xclient.data.l[1] = fullscreen;
+    xev.xclient.data.l[2] = 0;
+    XSendEvent (display, DefaultRootWindow(display), False, SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+}
+
+static void drawRectanle(Game *self, const Cell *cell, const unsigned long color)
+{
+    XSetForeground(self->p->display, DefaultGC(self->p->display, self->p->screen), color);
+    XFillRectangle(self->p->display, self->p->gameArea, DefaultGC(self->p->display, self->p->screen), cell->x*WIDTH_CELL, cell->y*HEIGHT_CELL, WIDTH_CELL, HEIGHT_CELL);
+}
+
+static void displayCell(Game *self, const Cell *cell)
+{
+   switch(cell->color) {
+      case RED:
+        drawRectanle(self, cell, self->p->color.red.pixel);
          break;
       case GREEN:
-         printf("%so ", COLOR_GREEN);
+        drawRectanle(self, cell, self->p->color.green.pixel);
          break;
       case YELLOW:
-         printf("%so ", COLOR_YELLOW);
+        drawRectanle(self, cell, self->p->color.yellow.pixel);
          break;
       case BLUE:
-         printf("%so ", COLOR_BLUE);
+        drawRectanle(self, cell, self->p->color.blue.pixel);
          break;
-      default:
-         printf("%so ", COLOR_WHITE);
+   default:
+       break;
+   }
+}
+
+static void displayResult(Game *self, const GameTable *table)
+{
+   XClearWindow(self->p->display, self->p->gameArea);
+   for(int y=0; y<table->getSizeY(table); y++) {
+      for(int x=0; x<table->getSizeX(table); x++) {
+         Cell cell = table->getCell(table, x ,y);
+         displayCell(self, &cell);
+      }
    }
 }
 
@@ -95,16 +181,53 @@ static void setCellsInTable(GameTable *mainTable, GameTable *tmpTable, Color pla
    }
 }
 
-static void startGame(Game *self)
+static int startGame(Game *self)
 {
    while(1) {
-      self->displayResult(self->p->mainTable);
+       XNextEvent(self->p->display, &self->p->xev);
+
+       if(self->p->xev.type == KeyPress) {
+           printf("%d\n", self->p->xev.xkey.keycode);
+           if(self->p->xev.xkey.keycode == 65) {
+                break;
+           }
+       }
+
+       if(self->p->xev.type == ButtonPress) {
+           if(self->p->xev.xbutton.button) {
+                printf("%d,%d\n", self->p->xev.xbutton.x, self->p->xev.xbutton.y);
+           }
+       }
+   }
+
+   while(1) {
+      displayResult(self, self->p->mainTable);
       usleep(DEFAULT_SLEEP_TIME_USEC);
       
       for(int i=0; i<self->p->playerCount; i++) {
          setCellsInTable(self->p->mainTable, self->p->tmpTable, self->p->players[i]);    
       }  
-      swapTables(self->p->mainTable, self->p->tmpTable);   
+      swapTables(self->p->mainTable, self->p->tmpTable);
+
+      while(XPending(self->p->display)) {
+          XNextEvent(self->p->display, &self->p->xev);
+          if(self->p->xev.type == KeyPress) {
+              XCloseDisplay(self->p->display);
+              return 0;
+          }
+
+          if(self->p->xev.type == ButtonPress) {
+              if(self->p->xev.xbutton.button == 1) {
+
+              }
+          }
+
+          if(self->p->xev.type == ButtonRelease) {
+              if(self->p->xev.xbutton.button == 1) {
+
+              }
+          }
+      }
    }
 }
 
@@ -146,23 +269,34 @@ static int setInitialCell(Game *self, const Cell *cell)
    return 0;
 }
 
-static void displayResult(const GameTable *table)
+
+
+static void initGraphics(Game *self)
 {
-   printf("\e[1;1H\e[2J");
-   printf("  ");
-   for(int x=0; x<table->getSizeX(table); x++){
-      printf("%d ", x%10);
-   }
-   printf("\n");
-   for(int y=0; y<table->getSizeY(table); y++) {
-      printf("%d ", y%10);
-      for(int x=0; x<table->getSizeX(table); x++) {
-         Cell cell = table->getCell(table, x ,y);
-         printCell(cell.color);
-      }
-      printf("\n");
-   }
-   printf("\n");
+    self->p->display = XOpenDisplay(NULL);
+    if(self->p->display == NULL) {
+       fprintf(stderr, "Can not open display\n");
+       exit(1);
+    }
+    self->p->screen = DefaultScreen(self->p->display);
+
+    initColorPallete(self->p->display, self->p->screen, &self->p->color);
+    self->p->mainWindow = XCreateSimpleWindow(self->p->display, RootWindow(self->p->display, self->p->screen), 0, 0, 500 ,500, 0,self->p->color.black.pixel, self->p->color.black.pixel);
+    XSelectInput(self->p->display, self->p->mainWindow, ExposureMask | KeyPressMask);
+    XMapWindow(self->p->display, self->p->mainWindow);
+
+    setFullScreen(self->p->display, self->p->mainWindow, self->p->xev);
+
+
+    Window wid = DefaultRootWindow(self->p->display);
+    XWindowAttributes xwAttr;
+    XGetWindowAttributes(self->p->display, wid, &xwAttr);
+    printf("%d %d", xwAttr.width, xwAttr.height);
+    self->p->gameArea = XCreateSimpleWindow(self->p->display, self->p->mainWindow, 95, 95, xwAttr.width-205, xwAttr.height-205, 5,self->p->color.darkGray.pixel, self->p->color.dimGray.pixel);
+    XSelectInput(self->p->display, self->p->mainWindow, ButtonPressMask | KeyPressMask);
+    XMapWindow(self->p->display, self->p->gameArea);
+    XGrabPointer(self->p->display, self->p->gameArea, False, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+    XFlush(self->p->display);
 }
 
 Game *createGame(int sizeGameTableX, int sizeGameTableY)
@@ -178,8 +312,8 @@ Game *createGame(int sizeGameTableX, int sizeGameTableY)
    game->start = &startGame;
    game->addPlayer = &addPlayer;
    game->setInitialCell = &setInitialCell;
-   game->displayResult = &displayResult;
-   
+   initGraphics(game);
+
    return game;
 }
 
@@ -192,3 +326,5 @@ void destroyGame(Game *self)
    free(self->p);
    free(self);
 }
+
+
