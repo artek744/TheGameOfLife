@@ -1,2 +1,5 @@
 #object
 *.o
+
+# game execute file
+game-of-life

@@ -4,7 +4,7 @@ LDFLAGS = -lX11 -lgomp -pthread -std=c99
 
 SOURCES = $(wildcard ../sources/*.c)
 
-NAME = life-game
+NAME = game-of-life
 
 OBJECTS = $(SOURCES:.c=.o)
 
